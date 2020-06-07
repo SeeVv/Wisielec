@@ -1,0 +1,344 @@
+
+import random
+LOGO = '''
+ _    _ _     _      _                                          
+| |  | (_)   (_)    | |                                          
+| |  | |_ ___ _  ___| | ___  ___  
+| |/\| | / __| |/ _ \ |/ _ \/ __| 
+\  /\  / \__ \ |  __/ |  __/ (__  
+ \/  \/|_|___/_|\___|_|\___|\___| 
+'''
+
+HANGMANPICS = ['''
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========''', '''
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========''', '''
+  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========''', '''
+  +---+
+  |   |
+  O   |
+ /|   |
+      |
+      |
+=========''', '''
+  +---+
+  |   |
+  O   |
+ /|\  |
+      |
+      |
+=========''', '''
+  +---+
+  |   |
+  O   |
+ /|\  |
+ /    |
+      |
+=========''', '''
+  +---+
+  |   |
+  O   |
+ /|\  |
+ / \  |
+      |
+=========''']
+
+WORDLIST = {"en":{
+            "categories"
+            :{"sport":["football","basketball","hockey","volleybal","handball"],
+              "country":["Poland","Germany","France","Spain","Italy"],
+              "career":["firefighter","officer","chef","developer","waiter"]}},
+            "pl":{
+            "categories"
+            :{"sport":["piłka nożna","koszykówka","hokej","siatkówka","piłkaręczna"],
+              "country":["Polska","Niemcy","Francja","Hiszpania","Włochy"],
+              "career":["strażak","policjant","kucharz","programista","kelner"]}},
+            "es":{"categories"
+            :{"sport":["fútbol","baloncesto","hockey","vóleibol","balonmano"],
+              "country":["Polonia","Alemania","Francia","España","Italia"],
+              "career":["bombero","policía","cocinero","programador","camarero"]}}
+            }
+
+language = ""
+category = ""
+loadFromFile = None
+customWordlist = None
+nickname = ""
+currentWord = ""
+choosenLetters = []
+remainingLives = 0
+leaderboard = {}
+addLife,firstLetter = False,False
+
+def clearScreen():
+    for i in range(100):
+        print('')
+
+
+def displayMainMenu():
+    print(LOGO)
+    print('')
+    print('Tell me what you want to do?:')
+    print('s\t stands for start new game')
+    print('l\t stands for show leaderboard')
+    print('q\t stands for quit game')
+    print('')
+    print('Your decision:')
+
+    decision = ""
+    while True:
+
+        decision = input().lower()
+        if decision == "s" :
+            clearScreen()
+            displayLanguageMenu()
+            break
+        elif decision == "l":
+            displayLeaderBoard()
+            break
+        elif decision == "q":
+            exit(0)
+            break
+        else:
+            print("You've chosen wrong option")
+
+def displayLanguageMenu():
+    global language
+    print(LOGO)
+    print('')
+    print("Choose language:")
+    print("")
+    print("en\t stands for english")
+    print("pl\t stands for polish")
+    print("es\t stands for spanish")
+    print('')
+    print('Your decision:')
+    decision = ""
+    while True:
+
+        decision = input().lower()
+        if WORDLIST.keys().__contains__(decision):
+            language = decision
+            clearScreen()
+            displayCategoryMenu()
+            break
+        else:
+            print("You've choosen wrong option")
+            displayLanguageMenu()
+            break
+
+def displayCategoryMenu():
+    global language,category,customWordlist,loadFromFile
+    print(LOGO)
+    print('')
+    print("Choose category:")
+    print("")
+    for i in (WORDLIST[language]["categories"].keys()):
+        print("{} ".format(i))
+    print("Or type in 'file' to load words from words.txt (words should be separated by new line)")
+    while True:
+
+        decision = input().lower()
+        if WORDLIST[language]["categories"].keys().__contains__(decision):
+            category = decision
+            clearScreen()
+            displayNicknameMenu()
+            break
+        elif decision == "file":
+            success,words = loadWordsFromFile()
+            if success:
+                customWordlist = words
+                loadFromFile = success
+                clearScreen()
+                displayNicknameMenu()
+            else:
+                clearScreen()
+                print("Couldn't load custom wordlist or file may be empty")
+                displayCategoryMenu()
+            break
+        else:
+            print("You've choosen wrong option")
+            clearScreen()
+            displayCategoryMenu()
+            break
+#Pierwsze kolo
+def showFirstLetter():
+    global currentWord,choosenLetters
+    for i in currentWord:
+        if not i in choosenLetters:
+            choosenLetters.append(i)
+            break
+#Drugie Kolo
+def addExtraLife():
+    global remainingLives
+    remainingLives +=1
+
+def displayNicknameMenu():
+    global nickname,leaderboard
+    print(LOGO)
+    print('')
+    print("What is your nickname?:")
+    name = input().lower()
+    if name.strip():
+        nickname = name
+        if not name in leaderboard.keys():
+            leaderboard[name] = {"won":0,"lost":0}
+        clearScreen()
+        startGame()
+    else:
+        clearScreen()
+        displayNicknameMenu()
+
+def printWordGaps():
+    global currentWord,choosenLetters
+    for i in currentWord:
+        if i in choosenLetters:
+            print("{} ".format(i),end=" "),
+        else:
+            print("_ ",end=" "),
+
+def randomWord():
+    global loadFromFile,customWordlist
+    if not loadFromFile:
+        return random.choice(WORDLIST[language]["categories"][category]).lower()
+    else:
+        return random.choice(customWordlist).lower()
+
+def displayLeaderBoard():
+    global leaderboard
+    for i in leaderboard.keys():
+        print("{} Wygrane: {} Przegrane: {}".format(i,leaderboard[i]["won"],leaderboard[i]["lost"]))
+    displayMainMenu()
+
+
+def displayGameScreen():
+    global currentWord,firstLetter,addLife,choosenLetters,remainingLives,category,language
+    if remainingLives<7:
+        print(HANGMANPICS[6-remainingLives])
+    print("Current Word: ",end=" ")
+    printWordGaps()
+    print()
+    print("Used letters: {}".format(choosenLetters))
+    print("Language: {}".format(language))
+    print("Category: {}".format(category))
+    print("Add life (Type 'life'): {}".format(not addLife))
+    print("Show first letter (Type 'letter'): {}".format(not firstLetter))
+
+
+def checkIfPlayerWon():
+    global currentWord,choosenLetters
+    for i in currentWord:
+        if i not in  choosenLetters:
+            return False
+    return True
+
+def startGame():
+    global currentWord,addLife,firstLetter,nickname,leaderboard,remainingLives,choosenLetters,customWord
+    remainingLives = 7
+    currentWord = randomWord()
+    displayGameScreen()
+    while True:
+        letter = input().lower()
+        if len(letter) == 1 and not letter.isdigit():
+            if letter in choosenLetters:
+                print("You have already chosen that letter")
+            else:
+                choosenLetters.append(letter)
+                if not letter in currentWord:
+                    remainingLives -= 1
+
+                clearScreen()
+                displayGameScreen()
+                if (remainingLives == 0):
+                    print("You lost")
+                    leaderboard[nickname]["lost"] = str(int(leaderboard[nickname]["lost"])+1)
+                    saveLeaderBoard()
+                    break
+                if checkIfPlayerWon():
+                    print("You won")
+                    leaderboard[nickname]["won"] = str(int(leaderboard[nickname]["won"]) + 1)
+                    saveLeaderBoard()
+                    break
+        else:
+            if(letter == "life"):
+                if(not addLife):
+                    addLife = True
+                    addExtraLife()
+                    clearScreen()
+                    displayGameScreen()
+                else:
+                    print("You have already used that help")
+            elif(letter == "letter"):
+                if (not firstLetter):
+                    firstLetter = True
+                    showFirstLetter()
+                    clearScreen()
+                    displayGameScreen()
+                else:
+                    print("You have already used that help")
+                if checkIfPlayerWon():
+                    print("You won")
+                    leaderboard[nickname]["won"] = str(int(leaderboard[nickname]["won"]) + 1)
+                    saveLeaderBoard()
+                    break
+            else:
+                print("Input has to be one letter")
+
+
+def loadWordsFromFile():
+    try:
+        with open('file.txt') as f:
+            lines = [line.rstrip() for line in f]
+            if lines == None or len(lines)==0:
+                return False,lines
+            else:
+                return True,lines
+    except:
+        return False, None
+
+def loadLeaderBoard():
+    global leaderboard
+    lines = []
+    board = {}
+    try:
+        with open('leaderboard.txt',"r") as f:
+            lines = [line.rstrip().split(" ") for line in f]
+        for l in lines:
+            board[l[0]]={"won":l[1],"lost":l[2]}
+    finally:
+        leaderboard = board
+
+
+
+
+def saveLeaderBoard():
+    global leaderboard
+    board = []
+    try:
+        for i in leaderboard.keys():
+            board.append("{} {} {} \r".format(i,leaderboard[i]["won"],leaderboard[i]["lost"]))
+        file = open('leaderboard.txt', 'w')
+        file.writelines(board)
+        file.close()
+    finally:
+        print("Leaderboard saved!")
+
+loadLeaderBoard()
+displayMainMenu()
